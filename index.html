@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Antrian Daftar Ulang SPMB</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: #f4f6f9;
+            color: #333;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 900px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 768px) {
+            .container { grid-template-columns: 1fr; }
+        }
+        .card {
+            background: #fff;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        h2 {
+            margin-bottom: 5px;
+            color: #2c3e50;
+            font-size: 1.4rem;
+        }
+        .subtitle {
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #edf2f7;
+            padding-bottom: 10px;
+        }
+        .badge-jurusan {
+            display: inline-block;
+            background-color: #e0f2fe;
+            color: #0369a1;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            margin-bottom: 15px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        input[type="text"], select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 1rem;
+            background-color: #fff;
+        }
+        input:disabled, select:disabled {
+            background-color: #f1f5f9;
+            cursor: not-allowed;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-primary { background-color: #3b82f6; color: white; }
+        .btn-primary:hover { background-color: #2563eb; }
+        .btn-primary:disabled { background-color: #94a3b8; cursor: not-allowed;}
+        .btn-success { background-color: #10b981; color: white; margin-top: 15px; }
+        .btn-success:hover { background-color: #059669; }
+        .btn-danger { background-color: #ef4444; color: white; margin-top: 10px; font-size: 0.8rem; padding: 6px;}
+        
+        .display-antrian {
+            text-align: center;
+            background: #f8fafc;
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .nomor-besar {
+            font-size: 4rem;
+            font-weight: 800;
+            color: #3b82f6;
+            margin: 10px 0;
+        }
+        .info-pendaftar {
+            font-size: 1rem;
+            color: #64748b;
+        }
+        .list-wrapper {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        th { background-color: #f1f5f9; position: sticky; top: 0; }
+        .alert-error {
+            background-color: #fee2e2;
+            color: #991b1b;
+            padding: 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div>
+        <div class="card" style="margin-bottom: 20px;">
+            <h2>Ambil Nomor Antrian</h2>
+            <div class="subtitle">SPMB Daftar Ulang</div>
+            
+            <div id="statusHariIni"></div>
+
+            <form id="formAntrian">
+                <div class="form-group">
+                    <label for="nama">Nama Lengkap</label>
+                    <input type="text" id="nama" required placeholder="Masukkan nama siswa">
+                </div>
+                <div class="form-group">
+                    <label for="nisn">NISN</label>
+                    <input type="text" id="nisn" required placeholder="Masukkan 10 digit NISN" pattern="[0-9]{10}" title="NISN harus berupa 10 digit angka">
+                </div>
+                <div class="form-group">
+                    <label for="jurusan">Program Keahlian / Jurusan</label>
+                    <select id="jurusan" required></select>
+                </div>
+                <button type="submit" id="btnSubmit" class="btn-primary">Registrasi Antrian</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>Kontrol Panggilan</h2>
+            <div class="subtitle">Loket Operator</div>
+            <div class="display-antrian">
+                <p>Antrian yang Dipanggil:</p>
+                <div class="nomor-besar" id="nomorDipanggil">0</div>
+                <p class="info-pendaftar" id="detailDipanggil">-</p>
+            </div>
+            <button class="btn-success" onclick="panggilBerikutnya()">Panggil Antrian Berikutnya</button>
+            <button class="btn-danger" onclick="resetManual()">Reset Data Hari Ini Secara Manual</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Daftar Antrian Hari Ini</h2>
+        <div class="subtitle" id="tanggalTeks">Tanggal: -</div>
+        <div style="margin-bottom: 10px; font-weight: bold; color: #475569;">
+            Total Pendaftar: <span id="totalPendaftar">0</span> / 150
+        </div>
+        <div class="list-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Nama</th>
+                        <th>Jurusan</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelAntrian">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Konfigurasi Jadwal Jurusan berdasarkan Tanggal (Bulan Juni)
+    const JADWAL_SPMB = {
+        22: { nama: "Kecantikan & Spa", value: "Kecantikan & Spa" },
+        23: { nama: "Busana", value: "Busana" },
+        24: { nama: "Kuliner", value: "Kuliner" },
+        25: { nama: "Perhotelan", value: "Perhotelan" }
+    };
+
+    const MAKS_ANTRIAN = 150;
+    
+    // Mengambil tanggal hari ini (waktu lokal browser)
+    const hariIni = new Date();
+    const tglSekarang = hariIni.getDate();
+    const blnSekarang = hariIni.getMonth() + 1; // Januari = 0
+    const thnSekarang = hariIni.getFullYear();
+    
+    // Format string tanggal untuk teks halaman
+    const namaBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+    document.getElementById('tanggalTeks').innerText = `Tanggal: ${tglSekarang} ${namaBulan[hariIni.getMonth()]} ${thnSekarang}`;
+
+    // Fitur AUTO-RESET setiap hari: Cek apakah tanggal pendaftaran berbeda dengan data sebelumnya
+    const tanggalTerakhir = localStorage.getItem('antrian_tanggal');
+    const tanggalStringHariIni = `${thnSekarang}-${blnSekarang}-${tglSekarang}`;
+
+    if (tanggalTerakhir !== tanggalStringHariIni) {
+        // Jika hari berganti, hapus data antrian hari lalu secara otomatis
+        localStorage.removeItem('daftarAntrian');
+        localStorage.removeItem('indeksDipanggil');
+        // Set tanggal terakhir menjadi hari ini
+        localStorage.setItem('antrian_tanggal', tanggalStringHariIni);
+    }
+
+    // Load data lama yang tersimpan di browser jika harinya masih sama
+    let daftarAntrian = JSON.parse(localStorage.getItem('daftarAntrian')) || [];
+    let indeksDipanggil = parseInt(localStorage.getItem('indeksDipanggil')) || -1;
+
+    // Elemen DOM
+    const form = document.getElementById('formAntrian');
+    const tabelAntrian = document.getElementById('tabelAntrian');
+    const totalPendaftar = document.getElementById('totalPendaftar');
+    const nomorDipanggil = document.getElementById('nomorDipanggil');
+    const detailDipanggil = document.getElementById('detailDipanggil');
+    const selectJurusan = document.getElementById('jurusan');
+    const statusHariIni = document.getElementById('statusHariIni');
+    const btnSubmit = document.getElementById('btnSubmit');
+
+    // Validasi Tanggal dan Inisialisasi Pilihan Jurusan di Form
+    // (Aplikasi ini dikunci khusus untuk pendaftaran bulan Juni sesuai tanggalnya)
+    if (blnSekarang === 6 && JADWAL_SPMB[tglSekarang]) {
+        const infoJurusan = JADWAL_SPMB[tglSekarang];
+        statusHariIni.innerHTML = `<div class="badge-jurusan">Jadwal Hari Ini: Jurusan ${infoJurusan.nama}</div>`;
+        
+        // Isi pilihan select secara otomatis berdasarkan hari tersebut
+        const opsi = document.createElement('option');
+        opsi.value = infoJurusan.value;
+        opsi.text = infoJurusan.nama;
+        selectJurusan.appendChild(opsi);
+    } else {
+        // Jika di luar tanggal 22-25 Juni
+        statusHariIni.innerHTML = `<div class="alert-error">Pendaftaran Online Ditutup. Hari ini tidak ada jadwal pendaftaran ulang SPMB.</div>`;
+        // Kunci input form
+        document.getElementById('nama').disabled = true;
+        document.getElementById('nisn').disabled = true;
+        selectJurusan.disabled = true;
+        btnSubmit.disabled = true;
+    }
+
+    // Sinkronisasi tampilan panggil ulang jika halaman direfresh
+    if (indeksDipanggil >= 0 && daftarAntrian[indeksDipanggil]) {
+        const sekarang = daftarAntrian[indeksDipanggil];
+        nomorDipanggil.innerText = sekarang.nomor;
+        detailDipanggil.innerText = `${sekarang.nama} (${sekarang.jurusan})`;
+    }
+
+    // Aksi Simpan Antrian
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        if (daftarAntrian.length >= MAKS_ANTRIAN) {
+            alert('Maaf, kuota antrian hari ini sudah penuh (Maksimal 150)!');
+            return;
+        }
+
+        const nama = document.getElementById('nama').value;
+        const nisn = document.getElementById('nisn').value;
+        const jurusan = selectJurusan.value;
+        const nomor = daftarAntrian.length + 1;
+
+        daftarAntrian.push({ nomor, nama, nisn, jurusan });
+        
+        // Simpan ke penyimpanan lokal browser
+        localStorage.setItem('daftarAntrian', JSON.stringify(daftarAntrian));
+
+        form.reset();
+        updateTabel();
+    });
+
+    function updateTabel() {
+        tabelAntrian.innerHTML = '';
+        daftarAntrian.forEach(siswa => {
+            const row = `<tr>
+                <td><b>${siswa.nomor}</b></td>
+                <td>${siswa.nama}</td>
+                <td>${siswa.jurusan}</td>
+            </tr>`;
+            tabelAntrian.innerHTML += row;
+        });
+        totalPendaftar.innerText = daftarAntrian.length;
+    }
+
+    // Aksi Panggil Antrian
+    function panggilBerikutnya() {
+        if (daftarAntrian.length === 0) {
+            alert('Belum ada pendaftar dalam antrian hari ini.');
+            return;
+        }
+        
+        if (indeksDipanggil < daftarAntrian.length - 1) {
+            indeksDipanggil++;
+            localStorage.setItem('indeksDipanggil', indeksDipanggil);
+            
+            const sekarang = daftarAntrian[indeksDipanggil];
+            nomorDipanggil.innerText = sekarang.nomor;
+            detailDipanggil.innerText = `${sekarang.nama} (${sekarang.jurusan})`;
+            
+            // Panggilan Suara Google Indonesia
+            if ('speechSynthesis' in window) {
+                const ucapan = new SpeechSynthesisUtterance(`Nomor antrian ${sekarang.nomor}, atas nama ${sekarang.nama}, silahkan menuju loket`);
+                ucapan.lang = 'id-ID';
+                window.speechSynthesis.speak(ucapan);
+            }
+        } else {
+            alert('Semua antrian hari ini telah selesai dipanggil.');
+        }
+    }
+
+    // Fitur Reset Data Manual apabila dibutuhkan tombol darurat
+    function resetManual() {
+        if (confirm('Apakah Anda yakin ingin menghapus seluruh data antrian hari ini?')) {
+            localStorage.removeItem('daftarAntrian');
+            localStorage.removeItem('indeksDipanggil');
+            daftarAntrian = [];
+            indeksDipanggil = -1;
+            nomorDipanggil.innerText = '0';
+            detailDipanggil.innerText = '-';
+            updateTabel();
+            alert('Data antrian berhasil di-reset!');
+        }
+    }
+
+    // Jalankan pembaruan tabel saat pertama kali dibuka
+    updateTabel();
+</script>
+
+</body>
+</html>
